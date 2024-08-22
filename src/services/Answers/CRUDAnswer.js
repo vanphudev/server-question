@@ -1,55 +1,129 @@
 "use strict";
 const {Answer} = require("../../models/associations");
 const {Question} = require("../../models/associations");
+const {User} = require("../../models/associations");
 
 const getAnswerWithIdQuestion = async (req, res) => {
-   const {questionId} = req.params;
-   if (!questionId) {
-      return res.status(400).json({
-         message: "Question id is required",
-         status: 400,
-         error: "Question id is required",
-         getTimestamp: new Date().getTime(),
-      });
-   }
+   const { questionId } = req.params;
 
+   // Kiểm tra xem questionId có phải là số nguyên hợp lệ hay không
    if (!questionId || !Number.isInteger(Number(questionId))) {
       return res.status(400).json({
-         message: "Invalid question id format",
+         message: "Invalid question ID format",
          status: 400,
-         error: "Invalid question id format",
-         getTimestamp: new Date().getTime(),
+         error: "Invalid question ID format",
+         getTimestamp: new Date().toISOString(),
       });
    }
 
    try {
       const id = Number(questionId);
-      const answers = await Answer.findAll({
-         where: {question_id: id},
+
+      // Tìm câu hỏi dựa vào questionId và bao gồm thông tin người dùng đã tạo câu hỏi
+      const question = await Question.findOne({
+         where: { question_id: id },
+         include: [
+            {
+               model: User,
+               as: "creator",  // Đặt alias cho liên kết này
+               attributes: ["user_id", "user_name", "user_email"],
+            },
+         ],
       });
-      if (!answers || answers.length === 0) {
+
+      if (!question) {
          return res.status(404).json({
-            message: "Answers not found",
+            message: "Question not found",
             status: 404,
-            error: "Answers not found",
-            getTimestamp: new Date().getTime(),
+            error: "Question not found",
+            getTimestamp: new Date().toISOString(),
          });
       }
+
+      // Tìm tất cả câu trả lời của câu hỏi và bao gồm thông tin người dùng đã trả lời câu hỏi
+      const answers = await Answer.findAll({
+         where: { question_id: id },
+         include: [
+            {
+               model: User,
+               as: "responder",  // Đặt alias cho liên kết này
+               attributes: ["user_id", "user_name", "user_email"],
+            },
+         ],
+      });
+
+      // Đếm tổng số lượng câu trả lời
+      const totalAnswers = answers.length; // Đếm trực tiếp từ kết quả trả về
+
       res.status(200).json({
-         data: answers,
+         data: {
+            question,
+            answers,
+            totalAnswers,
+         },
          status: 200,
          message: "Get all answers successfully",
-         getTimestamp: new Date().getTime(),
+         getTimestamp: new Date().toISOString(),
       });
    } catch (err) {
       res.status(500).json({
          message: "Load dữ liệu không thành công ::: " + err.message,
          status: 500,
          error: "Error from server",
-         getTimestamp: new Date().getTime(),
+         getTimestamp: new Date().toISOString(),
       });
    }
 };
+
+
+// const getAnswerWithIdQuestion = async (req, res) => {
+//    const {questionId} = req.params;
+//    if (!questionId) {
+//       return res.status(400).json({
+//          message: "Question id is required",
+//          status: 400,
+//          error: "Question id is required",
+//          getTimestamp: new Date().getTime(),
+//       });
+//    }
+
+//    if (!questionId || !Number.isInteger(Number(questionId))) {
+//       return res.status(400).json({
+//          message: "Invalid question id format",
+//          status: 400,
+//          error: "Invalid question id format",
+//          getTimestamp: new Date().getTime(),
+//       });
+//    }
+
+//    try {
+//       const id = Number(questionId);
+//       const answers = await Answer.findAll({
+//          where: {question_id: id},
+//       });
+//       if (!answers || answers.length === 0) {
+//          return res.status(404).json({
+//             message: "Answers not found",
+//             status: 404,
+//             error: "Answers not found",
+//             getTimestamp: new Date().getTime(),
+//          });
+//       }
+//       res.status(200).json({
+//          data: answers,
+//          status: 200,
+//          message: "Get all answers successfully",
+//          getTimestamp: new Date().getTime(),
+//       });
+//    } catch (err) {
+//       res.status(500).json({
+//          message: "Load dữ liệu không thành công ::: " + err.message,
+//          status: 500,
+//          error: "Error from server",
+//          getTimestamp: new Date().getTime(),
+//       });
+//    }
+// };
 
 const createAnswer = async (req, res) => {
    const {content} = req.body;

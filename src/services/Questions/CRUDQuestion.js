@@ -21,20 +21,24 @@ const getAllQuestions = async (req, res) => {
       let questions;
 
       if (isAdmin) {
-         // Nếu là admin, lấy tất cả câu hỏi cùng câu trả lời và người dùng
          questions = await Question.findAll({
             include: [
                {
                   model: Answer,
                   include: {
                      model: User,
-                     attributes: ["user_id", "user_name", "user_image_url"], // Lấy thông tin người dùng
+                     attributes: ["user_id", "user_name", "user_image_url"],
                   },
+               },
+               // Include User (người đặt câu hỏi)
+               {
+                  model: User,
+                  as: "asker",
+                  attributes: ["user_id", "user_name", "user_image_url"],
                },
             ],
          });
       } else {
-         // Nếu không phải admin, chỉ lấy câu hỏi của người dùng đó cùng câu trả lời và người dùng
          questions = await Question.findAll({
             where: {user_id: user.userId},
             include: [
@@ -42,18 +46,23 @@ const getAllQuestions = async (req, res) => {
                   model: Answer,
                   include: {
                      model: User,
-                     attributes: ["user_id", "user_name", "user_image_url"], // Lấy thông tin người dùng
+                     attributes: ["user_id", "user_name", "user_image_url"],
                   },
+               },
+               // Include User (người đặt câu hỏi)
+               {
+                  model: User,
+                  as: "asker",
+                  attributes: ["user_id", "user_name", "user_image_url"],
                },
             ],
          });
       }
 
-      // Chuyển đổi dữ liệu để trả về
       const responseQuestions = questions.map((question) => {
          const questionData = question.toJSON();
 
-         // Lấy danh sách người dùng không trùng lặp
+         // Lấy danh sách người dùng không trùng lặp đã trả lời câu hỏi
          const uniqueAnswerers = questionData.Answers.reduce((acc, answer) => {
             const userId = answer.User.user_id;
             if (!acc.some((user) => user.user_id === userId)) {
@@ -67,8 +76,9 @@ const getAllQuestions = async (req, res) => {
 
          return {
             ...questionData,
-            answerers: uniqueAnswerers, // Danh sách người dùng đã trả lời câu hỏi
-            isQuestionByAdmin, // Thêm thuộc tính vào mỗi câu hỏi
+            answerers: uniqueAnswerers,
+            isQuestionByAdmin,
+            asker: question.asker, // Thông tin người đặt câu hỏi
          };
       });
 
@@ -90,6 +100,8 @@ const getAllQuestions = async (req, res) => {
 
 const createQuestions = async (req, res) => {
    const {title, content} = req.body;
+   console.log(req.body);
+
    const {user} = req;
    if (!title || !content) {
       return res.status(400).json({
@@ -102,7 +114,7 @@ const createQuestions = async (req, res) => {
    try {
       const newQuestion = await Question.create({
          question_title: title,
-         question_content: content,
+         question_description: content,
          user_id: user.userId,
       });
       res.status(201).json({
@@ -124,6 +136,7 @@ const createQuestions = async (req, res) => {
 const updateQuestions = async (req, res) => {
    const {title, content} = req.body;
    const questionId = req.params.id;
+
    if (!title || !content) {
       return res.status(400).json({
          message: "Title and content are required",
@@ -144,6 +157,7 @@ const updateQuestions = async (req, res) => {
       const question = await Question.findOne({
          where: {question_id: questionId},
       });
+
       if (!question) {
          return res.status(404).json({
             message: "Question not found",
@@ -156,6 +170,7 @@ const updateQuestions = async (req, res) => {
          question_title: title,
          question_content: content,
       });
+
       res.status(200).json({
          data: question,
          status: 200,
@@ -214,7 +229,7 @@ const deleteQuestions = async (req, res) => {
 const filterQuestionsByDate = async (req, res) => {
    const {groupName} = req;
    const {user} = req;
-   const {startDate, endDate} = req.body;
+   const {startDate, endDate} = req.query;
 
    if (!groupName) {
       return res.status(403).json({

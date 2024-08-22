@@ -9,7 +9,7 @@ class ConnectDatabase {
          port: databaseConfig.port,
          dialect: databaseConfig.dialect,
          logging: false,
-         connectTimeout: 60000 * 10,
+         connectTimeout: 6000 * 10,
       });
    }
 

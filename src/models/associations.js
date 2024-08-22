@@ -38,6 +38,14 @@ Answer.belongsTo(Question, {
 
 Answer.belongsTo(User, {foreignKey: "user_id"});
 User.hasMany(Answer, {foreignKey: "user_id"});
+Question.belongsTo(User, {foreignKey: "user_id", as: "asker"});
+
+// Question model
+Question.belongsTo(User, {as: "creator", foreignKey: "user_id"});
+Question.hasMany(Answer, {foreignKey: "question_id"});
+
+// Answer model
+Answer.belongsTo(User, {as: "responder", foreignKey: "user_id"});
 
 module.exports = {
    Role,

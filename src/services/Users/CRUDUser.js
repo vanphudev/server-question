@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const {User} = require("../../models/associations");
+var validator = require("validator");
 require("dotenv").config();
 
 const register = async (req, res) => {
@@ -44,8 +45,42 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
    const {email, password} = req.body;
-
    try {
+      if (!email && !password) {
+         return res.status(400).json({
+            message: "Email hoặc mật khẩu không được để trống.",
+            status: 400,
+            error: "Email and password is required.",
+         });
+      }
+
+      // Kiểm tra xem email có rỗng không
+      if (!email) {
+         return res.status(400).json({
+            message: "Email không được để trống.",
+            status: 400,
+            error: "Email is required.",
+         });
+      }
+
+      // Kiểm tra xem password có rỗng không
+      if (!password) {
+         return res.status(400).json({
+            message: "Mật khẩu không được để trống.",
+            status: 400,
+            error: "Password is required.",
+         });
+      }
+
+      // Kiểm tra xem email có rỗng không và đúng định dạng không
+      if (validator.isEmail(email) == false) {
+         return res.status(400).json({
+            message: "Email không hợp lệ.",
+            status: 400,
+            error: "Email is not in correct format!",
+         });
+      }
+
       // Kiểm tra xem người dùng có tồn tại không
       const user = await User.findOne({where: {user_email: email}});
       if (!user) {
@@ -88,10 +123,17 @@ const login = async (req, res) => {
          },
          accessToken: accessToken,
          refreshToken: refreshToken,
-         message: "Đăng nhập thành công.",
+         message: "Login successful",
          status: 200,
       });
    } catch (error) {
+      if (error.message == "Expected a string but received a Array") {
+         return res.status(444).json({
+            message: "Load dữ liệu không thành công ::: " + error.message,
+            status: 400,
+            error: "Error from server",
+         });
+      }
       res.status(500).json({
          message: "Load dữ liệu không thành công ::: " + error.message,
          status: 500,

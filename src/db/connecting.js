@@ -3,9 +3,9 @@ const dbInstance = ConnectDatabase.getInstance();
 
 try {
    dbInstance.authenticate();
-   console.log("Connection has been established successfully.");
+   console.log("Kết nối cơ sở dữ liệu thành công");
    const db = dbInstance.getSequelize();
    module.exports = db;
 } catch (error) {
-   console.error("Unable to connect to the database:", error);
+   console.error("Kết nối thất bại ::: ", error);
 }

@@ -13,6 +13,4 @@ rootRouter.use("/test", (req, res) => {
    res.status(200).json({message: "Hello World"});
 });
 
-module.exports = {
-   rootRouter,
-};
+module.exports = rootRouter;
